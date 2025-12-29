@@ -19,11 +19,9 @@ async def generate_report_endpoint(req: ReportRequest):
         # 1. Pobieranie commitów
         repo = Repo(req.repo_path)
 
-        repo.remotes.origin.fetch()
-        base = "origin/dev"
-        head = "HEAD"
+        commits = list(repo.iter_commits(f"HEAD~5..HEAD"))
 
-        commits = list(repo.iter_commits(f"{base}..{head}"))
+        print(commits)
 
         if not commits:
             return {"message": "Brak nowych commitów do analizy."}

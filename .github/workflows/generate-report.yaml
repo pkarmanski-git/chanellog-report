@@ -18,6 +18,7 @@ jobs:
         run: |
           # Wywołujemy API działające w Dockerze na porcie 65000
           REPO_NAME=${{ github.event.repository.name }}
+          echo "$REPO_NAME" 
           RESPONSE=$(curl -s -X 'POST' \
             'http://localhost:65000/generate-report' \
             -H 'Content-Type: application/json' \
@@ -26,6 +27,7 @@ jobs:
             }")
           
           # Wyciągamy sam raport z JSONa i zapisujemy do pliku
+          echo "$RESPONSE"
           echo "$RESPONSE" | jq -r '.report' > CHANGELOG_CLIENT.md
 
       - name: Upload report
