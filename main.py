@@ -11,48 +11,29 @@ MODEL_PATH = os.getenv("MODEL_PATH", "/app/models/Llama-3.2-3B-Instruct-Q4_K_M.g
 llm = Llama(model_path=MODEL_PATH, n_ctx=4096, n_threads=4)
 
 class ReportRequest(BaseModel):
-    repo_path: str
+    project_name: str
+    commits: str
 
 @app.post("/generate-report")
 async def generate_report_endpoint(req: ReportRequest):
     try:
-        # 1. Pobieranie commitów
-        repo = Repo(req.repo_path)
+        if not req.commits.strip():
+            return {"report": "Brak zmian do zaraportowania."}
 
-        commits = list(repo.iter_commits(f"HEAD~5..HEAD"))
-
-        print(commits)
-
-        if not commits:
-            return {"message": "Brak nowych commitów do analizy."}
-
-        commits_list = "\n".join([f"- {c.message.strip()}" for c in commits])
-
-        # OFICJALNY FORMAT LLAMA 3.2
         prompt = (
             "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n"
-            "Jesteś profesjonalnym asystentem. Tworzysz czytelne raporty zmian dla klientów biznesowych. "
-            "Nie używaj żargonu technicznego. Skup się na korzyściach dla użytkownika.<|eot_id|>"
+            "Jesteś profesjonalnym asystentem. Tworzysz raporty zmian dla klientów.\n"
+            f"Projekt: {req.project_name}<|eot_id|>"
             "<|start_header_id|>user<|end_header_id|>\n\n"
-            f"Na podstawie poniższej listy commitów przygotuj raport w sekcjach: "
-            f"1. Nowe funkcje, 2. Poprawki, 3. Zmiany techniczne.\n\n"
-            f"Lista commitów:\n{commits_list}<|eot_id|>"
+            f"Przygotuj raport na podstawie tych commitów:\n{req.commits}<|eot_id|>"
             "<|start_header_id|>assistant<|end_header_id|>\n\n"
         )
 
-        # Wywołanie modelu
-        result = llm(
-            prompt,
-            max_tokens=1000,
-            stop=["<|eot_id|>"], # Ważne: model przestanie pisać po wygenerowaniu końca odpowiedzi
-            temperature=0.7
-        )
-
-        report = result['choices'][0]['text'].strip()
-        return {"report": report}
-
+        result = llm(prompt, max_tokens=1000, stop=["<|eot_id|>"])
+        return {"report": result['choices'][0]['text'].strip()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

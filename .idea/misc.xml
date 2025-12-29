@@ -3,9 +3,6 @@
   <component name="Black">
     <option name="sdkName" value="llama-report" />
   </component>
-  <component name="GithubDefaultAccount">
-    <option name="defaultAccountId" value="170648b2-dc44-40be-821e-da82b01cab32" />
-  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="llama-report" project-jdk-type="Python SDK">
     <output url="file://$PROJECT_DIR$/out" />
   </component>

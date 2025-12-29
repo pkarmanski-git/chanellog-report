@@ -13,20 +13,27 @@ jobs:
         with:
           fetch-depth: 0  # Ważne, aby pobrać historię do porównania
 
-      - name: Call Report API
-        id: call_api
+      - name: Gather Commits and Call API
         run: |
-          # Wywołujemy API działające w Dockerze na porcie 65000
-          REPO_NAME=${{ github.event.repository.name }}
-          echo "$REPO_NAME" 
+          # 1. Pobierz listę commitów między poprzednim stanem a obecnym
+          # Jeśli to pierwszy push, używamy HEAD~1
+          BEFORE=${{ github.event.before }}
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE="HEAD~1"
+          fi
+          
+          # Wyciągamy listę: "hash: temat (autor)"
+          COMMITS_TEXT=$(git log $BEFORE..${{ github.event.after }} --pretty=format:"- %s (%an)" | jq -sRr @json)
+          
+          # 2. Wyślij dane do lokalnego API
           RESPONSE=$(curl -s -X 'POST' \
             'http://localhost:65000/generate-report' \
             -H 'Content-Type: application/json' \
             -d "{
-              \"repo_path\": \"/app/projects/$REPO_NAME\"
+              \"project_name\": \"${{ github.event.repository.name }}\",
+              \"commits\": $COMMITS_TEXT
             }")
-          
-          # Wyciągamy sam raport z JSONa i zapisujemy do pliku
+                    # Wyciągamy sam raport z JSONa i zapisujemy do pliku
           echo "$RESPONSE"
           echo "$RESPONSE" | jq -r '.report' > CHANGELOG_CLIENT.md
 
