@@ -1,0 +1,35 @@
+name: Generate Client Report
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  report:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ważne, aby pobrać historię do porównania
+
+      - name: Call Report API
+        id: call_api
+        run: |
+          # Wywołujemy API działające w Dockerze na porcie 65000
+          REPO_NAME=${{ github.event.repository.name }}
+          RESPONSE=$(curl -s -X 'POST' \
+            'http://localhost:65000/generate-report' \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"repo_path\": \"/app/projects/$REPO_NAME\"
+            }")
+          
+          # Wyciągamy sam raport z JSONa i zapisujemy do pliku
+          echo "$RESPONSE" | jq -r '.report' > CHANGELOG_CLIENT.md
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4 # Nowsza wersja v4
+        with:
+          name: client-report
+          path: CHANGELOG_CLIENT.md
